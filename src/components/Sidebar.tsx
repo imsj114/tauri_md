@@ -11,12 +11,13 @@ interface SidebarProps {
     onNewFile: () => void;
     onTogglePin: (file: FileEntry) => void;
     onDeleteFile: (file: FileEntry) => void;
+    onRenameFile: (file: FileEntry) => void;
     onOpenSettings: () => void;
     currentFile: FileEntry | null;
     isReady: boolean;
 }
 
-export default function Sidebar({ files, onFileSelect, onOpenFolder, onNewFile, onTogglePin, onDeleteFile, onOpenSettings, currentFile, isReady }: SidebarProps) {
+export default function Sidebar({ files, onFileSelect, onOpenFolder, onNewFile, onTogglePin, onDeleteFile, onRenameFile, onOpenSettings, currentFile, isReady }: SidebarProps) {
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: FileEntry } | null>(null);
 
     const handleContextMenu = (e: React.MouseEvent, file: FileEntry) => {
@@ -105,6 +106,7 @@ export default function Sidebar({ files, onFileSelect, onOpenFolder, onNewFile, 
                     onClose={handleCloseContextMenu}
                     onPin={() => onTogglePin(contextMenu.file)}
                     onDelete={() => onDeleteFile(contextMenu.file)}
+                    onRename={() => onRenameFile(contextMenu.file)}
                     isPinned={!!contextMenu.file.isPinned}
                 />
             )}

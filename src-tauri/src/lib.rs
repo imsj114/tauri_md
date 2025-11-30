@@ -96,6 +96,11 @@ fn check_file_exists(path: &str) -> bool {
     Path::new(path).exists()
 }
 
+#[tauri::command]
+fn rename_file(old_path: &str, new_path: &str) -> Result<(), String> {
+    fs::rename(old_path, new_path).map_err(|e| e.to_string())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -109,6 +114,7 @@ pub fn run() {
             save_file,
             create_file,
             delete_file,
+            rename_file,
             check_file_exists
         ])
         .run(tauri::generate_context!())

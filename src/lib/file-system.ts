@@ -140,3 +140,12 @@ export async function createFile(path: string, name: string, content: string = '
     // Use Rust command to create file
     await invoke('create_file', { path, name, content });
 }
+
+export async function renameFile(oldPath: string, newPath: string): Promise<void> {
+    if (isMock) {
+        // Mock implementation for rename
+        console.log('Mock rename:', oldPath, '->', newPath);
+        return;
+    }
+    await invoke('rename_file', { oldPath, newPath });
+}

@@ -6,10 +6,11 @@ interface ContextMenuProps {
     onClose: () => void;
     onPin: () => void;
     onDelete: () => void;
+    onRename: () => void;
     isPinned: boolean;
 }
 
-export default function ContextMenu({ x, y, onClose, onPin, onDelete, isPinned }: ContextMenuProps) {
+export default function ContextMenu({ x, y, onClose, onPin, onDelete, onRename, isPinned }: ContextMenuProps) {
     const menuRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -36,6 +37,15 @@ export default function ContextMenu({ x, y, onClose, onPin, onDelete, isPinned }
                 className="w-full text-left px-4 py-2 hover:bg-gray-700 text-gray-200"
             >
                 {isPinned ? 'Unpin' : 'Pin'}
+            </button>
+            <button
+                onClick={() => {
+                    onRename();
+                    onClose();
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-gray-700 text-gray-200"
+            >
+                Rename
             </button>
             <div className="h-px bg-gray-700 my-1" />
             <button

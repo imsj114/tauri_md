@@ -3,7 +3,7 @@ import Sidebar from './components/Sidebar';
 import HybridEditor from './components/HybridEditor';
 import Editor from './components/Editor';
 import Preview from './components/Preview';
-import { openFolder, listFiles, readFile, saveFile, createFile, FileEntry, sortFiles, saveConfig, deleteFile } from './lib/file-system';
+import { openFolder, listFiles, readFile, saveFile, createFile, FileEntry, sortFiles, saveConfig, deleteFile, renameFile } from './lib/file-system';
 import InputModal from './components/InputModal';
 import SettingsModal from './components/SettingsModal';
 import { SettingsProvider, useSettings } from './context/SettingsContext';
@@ -18,6 +18,11 @@ function AppContent() {
   const [isDirty, setIsDirty] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
+  // Rename state
+  const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
+  const [fileToRename, setFileToRename] = useState<FileEntry | null>(null);
+
   const { viewMode } = useSettings();
 
   const handleOpenFolder = async () => {
@@ -156,6 +161,66 @@ function AppContent() {
     }
   };
 
+  const handleRenameRequest = (file: FileEntry) => {
+    setFileToRename(file);
+    setIsRenameModalOpen(true);
+  };
+
+  const handleRenameFile = async (newName: string) => {
+    if (!currentPath || !fileToRename) return;
+
+    // Keep extension if user didn't provide one, or enforce .md if it was .md
+    let finalName = newName;
+    if (fileToRename.name.endsWith('.md') && !finalName.endsWith('.md')) {
+      finalName += '.md';
+    }
+
+    const newPath = `${currentPath}/${finalName}`;
+
+    try {
+      await renameFile(fileToRename.path, newPath);
+
+      // Refresh file list
+      const entries = await listFiles(currentPath);
+      setFiles(entries);
+
+      // If we renamed the current file, update currentFile state
+      if (currentFile?.path === fileToRename.path) {
+        const newFileEntry = entries.find(e => e.name === finalName);
+        if (newFileEntry) {
+          setCurrentFile(newFileEntry);
+        }
+      }
+
+      // Update pinned config if needed
+      if (fileToRename.isPinned) {
+        // Actually, listFiles reads config. We need to update config with new name.
+        // Wait, listFiles reads config based on names. If we rename, the name in config is old.
+        // We need to update config.
+
+        // Let's get the current pinned list from state (before refresh, or re-calculate)
+        // Easier: Read config, replace old name with new name, save.
+        // But we already refreshed files.
+
+        // Let's just update the config directly.
+        const currentPinned = files.filter(f => f.isPinned).map(f => f.name);
+        const newPinned = currentPinned.map(name => name === fileToRename.name ? finalName : name);
+        await saveConfig(currentPath, { pinnedFiles: newPinned });
+
+        // Refresh again to get correct pinned status
+        const refreshedEntries = await listFiles(currentPath);
+        setFiles(refreshedEntries);
+      }
+
+      setIsRenameModalOpen(false);
+      setFileToRename(null);
+
+    } catch (error) {
+      console.error('Error renaming file:', error);
+      alert(`Failed to rename file: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
   const handleContentChange = (value: string) => {
     setMarkdown(value);
     if (currentFile && !isDirty) {
@@ -184,6 +249,7 @@ function AppContent() {
         onNewFile={handleNewFile}
         onTogglePin={handleTogglePin}
         onDeleteFile={handleDeleteFile}
+        onRenameFile={handleRenameRequest}
         onOpenSettings={() => setIsSettingsOpen(true)}
         currentFile={currentFile}
         isReady={!!currentPath}
@@ -231,6 +297,18 @@ function AppContent() {
         title="Create New File"
         message="Enter the name for your new Markdown file:"
         placeholder="filename.md"
+      />
+
+      <InputModal
+        isOpen={isRenameModalOpen}
+        onCancel={() => {
+          setIsRenameModalOpen(false);
+          setFileToRename(null);
+        }}
+        onConfirm={handleRenameFile}
+        title="Rename File"
+        message={`Enter new name for "${fileToRename?.name}":`}
+        placeholder={fileToRename?.name || ""}
       />
 
       <SettingsModal
