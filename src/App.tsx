@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
-import Editor from './components/Editor';
-import Preview from './components/Preview';
+import HybridEditor from './components/HybridEditor';
 import { openFolder, listFiles, readFile, saveFile, createFile, FileEntry, sortFiles, saveConfig, deleteFile } from './lib/file-system';
 import InputModal from './components/InputModal';
 import { Save } from 'lucide-react';
@@ -129,7 +128,7 @@ function App() {
     setIsModalOpen(true);
   };
 
-  const createNewFile = async (fileName: string) => {
+  const handleCreateFile = async (fileName: string) => {
     if (!currentPath) return;
 
     const finalName = fileName.endsWith('.md') ? fileName : `${fileName}.md`;
@@ -198,20 +197,29 @@ function App() {
           </div>
         )}
 
-        <div className="flex flex-1 overflow-hidden">
-          <Editor value={markdown} onChange={handleContentChange} />
-          <Preview content={markdown} />
+        {/* Hybrid Editor Area */}
+        <div className="flex-1 overflow-hidden relative">
+          {/* Key prop ensures editor is re-mounted when file changes, 
+              which is the simplest way to handle content reset in Milkdown 
+              without complex effect logic */}
+          <HybridEditor
+            key={currentFile ? currentFile.path : 'empty'}
+            value={markdown}
+            onChange={handleContentChange}
+          />
         </div>
       </div>
+
       <InputModal
         isOpen={isModalOpen}
+        onCancel={() => setIsModalOpen(false)}
+        onConfirm={handleCreateFile}
         title="Create New File"
         message="Enter the name for your new Markdown file:"
-        placeholder="e.g., my-new-note.md"
-        onConfirm={createNewFile}
-        onCancel={() => setIsModalOpen(false)}
+        placeholder="filename.md"
       />
     </div>
   );
 }
+
 export default App;

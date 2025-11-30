@@ -1,91 +1,104 @@
 import { FileEntry } from './file-system';
 
-const STORAGE_KEY_FILES = 'mock_files';
-const STORAGE_KEY_CONTENTS = 'mock_contents';
+const MOCK_DELAY = 300;
+const STORAGE_KEY = 'tauri-md-mock-fs';
 
-let mockFiles: FileEntry[] = [];
-let mockFileContents: Record<string, string> = {};
+interface MockFileSystem {
+    [path: string]: string; // content
+}
 
-function loadMockData() {
-    const savedFiles = localStorage.getItem(STORAGE_KEY_FILES);
-    const savedContents = localStorage.getItem(STORAGE_KEY_CONTENTS);
+const DEFAULT_FILES: MockFileSystem = {
+    '/mock/welcome.md': '# Welcome to Tauri MD (Mock)\n\nThis is a mock file system running in the browser.\n\n- [x] Test persistence\n- [ ] Try editing this file',
+    '/mock/notes.md': '# Notes\n\n* Buy milk\n* Walk the dog',
+    '/mock/project/readme.md': '# Project\n\nThis is a nested file.',
+};
 
-    if (savedFiles && savedContents) {
-        mockFiles = JSON.parse(savedFiles);
-        mockFileContents = JSON.parse(savedContents);
-    } else {
-        // Initial data
-        mockFiles = [
-            { name: 'welcome.md', path: '/mock/welcome.md', isDirectory: false, updatedAt: Date.now(), isPinned: false },
-            { name: 'notes', path: '/mock/notes', isDirectory: true, updatedAt: Date.now(), isPinned: false },
-        ];
-        mockFileContents = {
-            '/mock/welcome.md': '# Welcome to Mock Mode\n\nThis is a mock file system for testing.',
-        };
-        saveMockData();
+function getMockData(): MockFileSystem {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    if (stored) {
+        return JSON.parse(stored);
     }
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(DEFAULT_FILES));
+    return DEFAULT_FILES;
 }
 
-function saveMockData() {
-    localStorage.setItem(STORAGE_KEY_FILES, JSON.stringify(mockFiles));
-    localStorage.setItem(STORAGE_KEY_CONTENTS, JSON.stringify(mockFileContents));
+function saveMockData(data: MockFileSystem) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 }
 
-// Load data immediately
-loadMockData();
+const delay = () => new Promise(resolve => setTimeout(resolve, MOCK_DELAY));
 
-export async function openFolderMock(): Promise<string | null> {
+export async function openFolderMock(): Promise<string> {
+    await delay();
     return '/mock';
 }
 
 export async function listFilesMock(path: string): Promise<FileEntry[]> {
-    console.log('Mock listFiles', path);
-    if (path === '/mock') {
-        return [...mockFiles].sort((a, b) => {
-            if (a.isPinned !== b.isPinned) {
-                return a.isPinned ? -1 : 1;
+    await delay();
+    const data = getMockData();
+    const entries: FileEntry[] = [];
+    const seenDirs = new Set<string>();
+
+    Object.keys(data).forEach(filePath => {
+        if (!filePath.startsWith(path)) return;
+
+        const relativePath = filePath.slice(path.length + 1);
+        const parts = relativePath.split('/');
+
+        if (parts.length === 1) {
+            // File
+            entries.push({
+                name: parts[0],
+                path: filePath,
+                isDirectory: false,
+                updatedAt: Date.now(),
+            });
+        } else {
+            // Directory
+            const dirName = parts[0];
+            if (!seenDirs.has(dirName)) {
+                seenDirs.add(dirName);
+                entries.push({
+                    name: dirName,
+                    path: `${path}/${dirName}`,
+                    isDirectory: true,
+                    updatedAt: Date.now(),
+                });
             }
-            if (a.isDirectory !== b.isDirectory) {
-                return a.isDirectory ? -1 : 1;
-            }
-            return b.updatedAt - a.updatedAt;
-        });
-    }
-    return [];
+        }
+    });
+
+    return entries;
 }
 
 export async function readFileMock(path: string): Promise<string> {
-    if (mockFileContents[path]) {
-        return mockFileContents[path];
-    }
-    throw new Error('File not found');
+    await delay();
+    const data = getMockData();
+    if (data[path] === undefined) throw new Error('File not found');
+    return data[path];
 }
 
 export async function saveFileMock(path: string, content: string): Promise<void> {
-    console.log('Mock saveFile', path);
-    mockFileContents[path] = content;
-
-    const fileEntry = mockFiles.find(f => f.path === path);
-    if (fileEntry) {
-        fileEntry.updatedAt = Date.now();
-    }
-    saveMockData();
+    await delay();
+    const data = getMockData();
+    data[path] = content;
+    saveMockData(data);
 }
 
 export async function createFileMock(path: string, name: string, content: string = ''): Promise<void> {
-    console.log('Mock createFile', path, name);
+    await delay();
+    const data = getMockData();
     const filePath = `${path}/${name}`;
-    mockFiles.push({ name, path: filePath, isDirectory: false, updatedAt: Date.now(), isPinned: false });
-    mockFileContents[filePath] = content;
-    saveMockData();
+    if (data[filePath]) throw new Error('File already exists');
+    data[filePath] = content;
+    saveMockData(data);
 }
 
 export async function deleteFileMock(path: string): Promise<void> {
-    console.log('Mock deleteFile', path);
-    const index = mockFiles.findIndex(f => f.path === path);
-    if (index !== -1) {
-        mockFiles.splice(index, 1);
+    await delay();
+    const data = getMockData();
+    if (data[path]) {
+        delete data[path];
+        saveMockData(data);
     }
-    delete mockFileContents[path];
-    saveMockData();
 }

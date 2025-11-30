@@ -1,5 +1,5 @@
 import { open } from '@tauri-apps/plugin-dialog';
-import { readDir, readTextFile, writeTextFile, stat, remove, exists } from '@tauri-apps/plugin-fs';
+import { invoke } from '@tauri-apps/api/core';
 import { openFolderMock, listFilesMock, readFileMock, saveFileMock, createFileMock, deleteFileMock } from './mock-file-system';
 
 const isMock = new URLSearchParams(window.location.search).get('mock') === 'true';
@@ -26,14 +26,16 @@ async function loadConfig(folderPath: string): Promise<FolderConfig> {
     const configPath = `${folderPath}/${CONFIG_FILE}`;
 
     try {
-        const fileExists = await exists(configPath);
+        // Use Rust command to check existence
+        const fileExists = await invoke<boolean>('check_file_exists', { path: configPath });
         if (!fileExists) {
             console.log('Config file does not exist:', configPath);
             return { pinnedFiles: [] };
         }
 
         console.log('Loading config from:', configPath);
-        const content = await readTextFile(configPath);
+        // Use Rust command to read file
+        const content = await invoke<string>('read_file', { path: configPath });
         const config = JSON.parse(content);
 
         const parsedConfig = {
@@ -67,7 +69,8 @@ export async function saveConfig(folderPath: string, config: FolderConfig): Prom
     configCache[folderPath] = normalizedConfig;
 
     console.log('Saving config to:', configPath, normalizedConfig);
-    await writeTextFile(configPath, JSON.stringify(normalizedConfig, null, 2));
+    // Use Rust command to save file
+    await invoke('save_file', { path: configPath, content: JSON.stringify(normalizedConfig, null, 2) });
 }
 
 export async function openFolder(): Promise<string | null> {
@@ -81,37 +84,21 @@ export async function openFolder(): Promise<string | null> {
 
 export async function listFiles(path: string): Promise<FileEntry[]> {
     if (isMock) return listFilesMock(path);
-    const entries = await readDir(path);
+
+    // Use Rust command to list files
+    // Rust returns { name, path, isDirectory, updatedAt } (camelCase)
+    const entries = await invoke<FileEntry[]>('list_files', { path });
     const config = await loadConfig(path);
 
-    // Filter and map to promises with stats
-    const filePromises = entries
-        .filter((entry) => entry.isDirectory || entry.name.endsWith('.md'))
-        .map(async (entry) => {
-            const name = entry.name.normalize('NFC');
-            const filePath = `${path}/${entry.name}`;
-            try {
-                const metadata = await stat(filePath);
-                return {
-                    name: name,
-                    path: filePath,
-                    isDirectory: entry.isDirectory,
-                    updatedAt: metadata.mtime ? new Date(metadata.mtime).getTime() : 0,
-                    isPinned: config.pinnedFiles.includes(name),
-                };
-            } catch (e) {
-                console.error(`Failed to stat ${filePath}`, e);
-                return {
-                    name: name,
-                    path: filePath,
-                    isDirectory: entry.isDirectory,
-                    updatedAt: 0,
-                    isPinned: config.pinnedFiles.includes(name),
-                };
-            }
-        });
-
-    const files = await Promise.all(filePromises);
+    // Map entries to include isPinned
+    const files = entries.map(entry => {
+        const name = entry.name.normalize('NFC');
+        return {
+            ...entry,
+            name: name, // Ensure normalized name
+            isPinned: config.pinnedFiles.includes(name),
+        };
+    });
 
     return sortFiles(files);
 }
@@ -132,21 +119,24 @@ export function sortFiles(files: FileEntry[]): FileEntry[] {
 
 export async function deleteFile(path: string): Promise<void> {
     if (isMock) return deleteFileMock(path);
-    await remove(path);
+    // Use Rust command to delete file
+    await invoke('delete_file', { path });
 }
 
 export async function readFile(path: string): Promise<string> {
     if (isMock) return readFileMock(path);
-    return await readTextFile(path);
+    // Use Rust command to read file
+    return await invoke<string>('read_file', { path });
 }
 
 export async function saveFile(path: string, content: string): Promise<void> {
     if (isMock) return saveFileMock(path, content);
-    await writeTextFile(path, content);
+    // Use Rust command to save file
+    await invoke('save_file', { path, content });
 }
 
 export async function createFile(path: string, name: string, content: string = ''): Promise<void> {
     if (isMock) return createFileMock(path, name, content);
-    const filePath = `${path}/${name}`;
-    await writeTextFile(filePath, content);
+    // Use Rust command to create file
+    await invoke('create_file', { path, name, content });
 }
