@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import HybridEditor from './components/HybridEditor';
+import Editor from './components/Editor';
+import Preview from './components/Preview';
 import { openFolder, listFiles, readFile, saveFile, createFile, FileEntry, sortFiles, saveConfig, deleteFile } from './lib/file-system';
 import InputModal from './components/InputModal';
 import SettingsModal from './components/SettingsModal';
-import { SettingsProvider } from './context/SettingsContext';
+import { SettingsProvider, useSettings } from './context/SettingsContext';
 import { Save } from 'lucide-react';
 import { ask } from '@tauri-apps/plugin-dialog';
 
@@ -16,6 +18,7 @@ function AppContent() {
   const [isDirty, setIsDirty] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { viewMode } = useSettings();
 
   const handleOpenFolder = async () => {
     try {
@@ -201,16 +204,23 @@ function AppContent() {
           </div>
         )}
 
-        {/* Hybrid Editor Area */}
-        <div className="flex-1 overflow-hidden relative">
-          {/* Key prop ensures editor is re-mounted when file changes, 
-              which is the simplest way to handle content reset in Milkdown 
-              without complex effect logic */}
-          <HybridEditor
-            key={currentFile ? currentFile.path : 'empty'}
-            value={markdown}
-            onChange={handleContentChange}
-          />
+        {/* Editor Area */}
+        <div className="flex-1 overflow-hidden relative flex">
+          {viewMode === 'hybrid' ? (
+            /* Key prop ensures editor is re-mounted when file changes, 
+                which is the simplest way to handle content reset in Milkdown 
+                without complex effect logic */
+            <HybridEditor
+              key={currentFile ? currentFile.path : 'empty'}
+              value={markdown}
+              onChange={handleContentChange}
+            />
+          ) : (
+            <>
+              <Editor value={markdown} onChange={handleContentChange} />
+              <Preview content={markdown} />
+            </>
+          )}
         </div>
       </div>
 

@@ -5,6 +5,7 @@ interface Settings {
     lineHeight: number;
     theme: 'dark' | 'light';
     fontFamily: string;
+    viewMode: 'hybrid' | 'split';
 }
 
 interface SettingsContextType extends Settings {
@@ -16,6 +17,7 @@ const defaultSettings: Settings = {
     lineHeight: 1.6,
     theme: 'dark',
     fontFamily: 'sans',
+    viewMode: 'hybrid',
 };
 
 const SettingsContext = createContext<SettingsContextType | undefined>(undefined);

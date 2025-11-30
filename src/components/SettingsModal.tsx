@@ -8,7 +8,7 @@ interface SettingsModalProps {
 }
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
-    const { fontSize, lineHeight, theme, fontFamily, updateSettings } = useSettings();
+    const { fontSize, lineHeight, theme, fontFamily, viewMode, updateSettings } = useSettings();
 
     if (!isOpen) return null;
 
@@ -69,6 +69,25 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose }) => {
                             <option value="serif">Serif</option>
                             <option value="mono">Monospace</option>
                         </select>
+                    </div>
+
+                    {/* View Mode */}
+                    <div className="space-y-2">
+                        <label className="text-sm font-medium text-gray-300 block">View Mode</label>
+                        <div className="flex bg-gray-700 rounded p-1">
+                            <button
+                                className={`flex-1 py-1 rounded text-sm transition-colors ${viewMode === 'hybrid' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                                onClick={() => updateSettings({ viewMode: 'hybrid' })}
+                            >
+                                Hybrid (WYSIWYG)
+                            </button>
+                            <button
+                                className={`flex-1 py-1 rounded text-sm transition-colors ${viewMode === 'split' ? 'bg-blue-600 text-white' : 'text-gray-400 hover:text-gray-200'}`}
+                                onClick={() => updateSettings({ viewMode: 'split' })}
+                            >
+                                Split (Editor + Preview)
+                            </button>
+                        </div>
                     </div>
 
                     {/* Theme (Placeholder for now as app is dark-only) */}
