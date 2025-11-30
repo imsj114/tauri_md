@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "tauri": "tauri"
+    "tauri": "tauri",
+    "build:intel": "npm run tauri build -- --target x86_64-apple-darwin",
+    "build:universal": "npm run tauri build -- --target universal-apple-darwin"
   },
   "dependencies": {
     "@milkdown/core": "^7.17.2",
