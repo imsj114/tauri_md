@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { FileText, Folder, FolderOpen, Plus, Pin } from 'lucide-react';
+import { FileText, Folder, FolderOpen, Plus, Pin, Settings } from 'lucide-react';
 import { FileEntry } from '../lib/file-system';
 import { motion, AnimatePresence } from 'framer-motion';
 import ContextMenu from './ContextMenu';
@@ -11,11 +11,12 @@ interface SidebarProps {
     onNewFile: () => void;
     onTogglePin: (file: FileEntry) => void;
     onDeleteFile: (file: FileEntry) => void;
+    onOpenSettings: () => void;
     currentFile: FileEntry | null;
     isReady: boolean;
 }
 
-export default function Sidebar({ files, onFileSelect, onOpenFolder, onNewFile, onTogglePin, onDeleteFile, currentFile, isReady }: SidebarProps) {
+export default function Sidebar({ files, onFileSelect, onOpenFolder, onNewFile, onTogglePin, onDeleteFile, onOpenSettings, currentFile, isReady }: SidebarProps) {
     const [contextMenu, setContextMenu] = useState<{ x: number; y: number; file: FileEntry } | null>(null);
 
     const handleContextMenu = (e: React.MouseEvent, file: FileEntry) => {
@@ -33,6 +34,13 @@ export default function Sidebar({ files, onFileSelect, onOpenFolder, onNewFile, 
             <div className="p-4 border-b border-gray-700 font-bold text-gray-100 flex justify-between items-center">
                 <span>Files</span>
                 <div className="flex gap-1">
+                    <button
+                        onClick={onOpenSettings}
+                        className="p-1 hover:bg-gray-600 rounded text-gray-400 hover:text-white transition-colors"
+                        title="Settings"
+                    >
+                        <Settings size={18} />
+                    </button>
                     <button
                         onClick={onNewFile}
                         disabled={!isReady}

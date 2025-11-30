@@ -3,16 +3,19 @@ import Sidebar from './components/Sidebar';
 import HybridEditor from './components/HybridEditor';
 import { openFolder, listFiles, readFile, saveFile, createFile, FileEntry, sortFiles, saveConfig, deleteFile } from './lib/file-system';
 import InputModal from './components/InputModal';
+import SettingsModal from './components/SettingsModal';
+import { SettingsProvider } from './context/SettingsContext';
 import { Save } from 'lucide-react';
 import { ask } from '@tauri-apps/plugin-dialog';
 
-function App() {
+function AppContent() {
   const [files, setFiles] = useState<FileEntry[]>([]);
   const [currentFile, setCurrentFile] = useState<FileEntry | null>(null);
   const [currentPath, setCurrentPath] = useState<string | null>(null);
   const [markdown, setMarkdown] = useState('# Welcome\n\nOpen a folder to start editing.');
   const [isDirty, setIsDirty] = useState(false);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleOpenFolder = async () => {
     try {
@@ -178,6 +181,7 @@ function App() {
         onNewFile={handleNewFile}
         onTogglePin={handleTogglePin}
         onDeleteFile={handleDeleteFile}
+        onOpenSettings={() => setIsSettingsOpen(true)}
         currentFile={currentFile}
         isReady={!!currentPath}
       />
@@ -218,7 +222,20 @@ function App() {
         message="Enter the name for your new Markdown file:"
         placeholder="filename.md"
       />
+
+      <SettingsModal
+        isOpen={isSettingsOpen}
+        onClose={() => setIsSettingsOpen(false)}
+      />
     </div>
+  );
+}
+
+function App() {
+  return (
+    <SettingsProvider>
+      <AppContent />
+    </SettingsProvider>
   );
 }
 

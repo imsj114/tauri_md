@@ -4,6 +4,7 @@ import { Milkdown, useEditor, MilkdownProvider } from '@milkdown/react';
 import { commonmark } from '@milkdown/preset-commonmark';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { history } from '@milkdown/plugin-history';
+import { useSettings } from '../context/SettingsContext';
 
 interface HybridEditorProps {
     value: string;
@@ -14,6 +15,7 @@ const EditorComponent: React.FC<HybridEditorProps> = ({ value, onChange }) => {
     // Use a ref to track if the update is coming from the editor itself
     // to prevent infinite loops or cursor jumping
     const isUpdatingRef = useRef(false);
+    const { fontSize, lineHeight, fontFamily } = useSettings();
 
     const { loading } = useEditor((root) =>
         Editor.make()
@@ -44,8 +46,17 @@ const EditorComponent: React.FC<HybridEditorProps> = ({ value, onChange }) => {
     // Simple approach: Re-create editor when file changes (key prop in parent)
     // or use an effect to update content if the value changes significantly and not from local edit.
 
+    const fontStyle = {
+        fontSize: `${fontSize}px`,
+        lineHeight: lineHeight,
+        fontFamily: fontFamily === 'mono' ? 'monospace' : fontFamily === 'serif' ? 'serif' : 'sans-serif',
+    };
+
     return (
-        <div className="flex-1 overflow-auto p-8 prose prose-invert max-w-none focus:outline-none relative min-h-[200px] [&_.ProseMirror]:outline-none">
+        <div
+            className="flex-1 overflow-auto p-8 prose prose-invert max-w-none focus:outline-none relative min-h-[200px] [&_.ProseMirror]:outline-none"
+            style={fontStyle}
+        >
             {loading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-900/80 z-10">
                     <div className="text-gray-500">Loading editor...</div>
