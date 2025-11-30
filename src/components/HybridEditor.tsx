@@ -4,6 +4,7 @@ import { Milkdown, useEditor, MilkdownProvider } from '@milkdown/react';
 import { commonmark } from '@milkdown/preset-commonmark';
 import { listener, listenerCtx } from '@milkdown/plugin-listener';
 import { history } from '@milkdown/plugin-history';
+import { upload, uploadConfig } from '@milkdown/plugin-upload';
 import { useSettings } from '../context/SettingsContext';
 
 interface HybridEditorProps {
@@ -23,6 +24,35 @@ const EditorComponent: React.FC<HybridEditorProps> = ({ value, onChange }) => {
                 ctx.set(rootCtx, root);
                 ctx.set(defaultValueCtx, value);
 
+                // Configure upload plugin
+                ctx.update(uploadConfig.key, (prev) => ({
+                    ...prev,
+                    uploader: async (files, schema) => {
+                        const images: any[] = []; // Using any to avoid complex ProseMirror type imports for now
+
+                        for (const file of files) {
+                            if (file && file.type.includes('image')) {
+                                const base64 = await new Promise<string>((resolve) => {
+                                    const reader = new FileReader();
+                                    reader.readAsDataURL(file);
+                                    reader.onload = () => resolve(reader.result as string);
+                                });
+
+                                const image = schema.nodes.image.createAndFill({
+                                    src: base64,
+                                    alt: file.name,
+                                });
+
+                                if (image) {
+                                    images.push(image);
+                                }
+                            }
+                        }
+
+                        return images;
+                    },
+                }));
+
                 // Set up listener for content changes
                 ctx.get(listenerCtx).markdownUpdated((_ctx, markdown, prevMarkdown) => {
                     if (markdown !== prevMarkdown) {
@@ -35,6 +65,7 @@ const EditorComponent: React.FC<HybridEditorProps> = ({ value, onChange }) => {
             .use(commonmark)
             .use(history)
             .use(listener)
+            .use(upload)
     );
 
     // Handle external value changes (e.g. loading a new file)
